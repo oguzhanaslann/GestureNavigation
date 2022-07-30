@@ -1,7 +1,10 @@
 package com.oguzhanaslann.gesturenavigation
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -10,8 +13,10 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.oguzhanaslann.gesturenavigation.ui.theme.GestureNavigationTheme
 
 
@@ -27,21 +32,45 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val onBackInvokedCallback = OnBackInvokedCallback {
+        Log.d(TAG, "onBackInvokedCallback: onBackInvoked")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setMainPageContentViews()
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+    }
+
+    private fun setMainPageContentViews() {
         setContent {
             GestureNavigationTheme {
                 // A surface container using the 'background' color from the theme
                 var isEnabled by remember { mutableStateOf(false) }
+                var isRegistered by remember { mutableStateOf(false) }
 
                 SideEffect {
                     onBackPressedCallback.isEnabled = isEnabled
                 }
 
+                if (Build.VERSION.SDK_INT >= 33) { // ABOVE android 13
+                    SideEffect {
+                        if (isRegistered) {
+                            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                                OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                                onBackInvokedCallback
+                            )
+                        } else {
+                            onBackInvokedDispatcher.unregisterOnBackInvokedCallback(onBackInvokedCallback)
+                        }
+                    }
+                }
+
+
                 MainView(
                     onBackPressedCallBack = {
                         /*deprecated on api 33 and above*/
-//                        this.onBackPressed()
+                        //                        this.onBackPressed()
 
                         this.onBackPressedDispatcher.onBackPressed()
                     },
@@ -57,17 +86,19 @@ class MainActivity : ComponentActivity() {
                         *
                         * */
                         isEnabled = !isEnabled
+                    },
+                    isRegistered = isRegistered,
+                    onToggleBackInvokedCallback = {
+                        isRegistered = !isRegistered
                     }
 
                 )
             }
         }
-
-        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
     }
 
     override fun onBackPressed() {
-        /*deprecated on api 33 and above*/
+        /** deprecated on api 33 and above will not be called @see {@link super.onBackPressed}  */
         super.onBackPressed()
         Log.d(TAG, "onBackPressed")
     }
@@ -77,7 +108,9 @@ class MainActivity : ComponentActivity() {
 fun MainView(
     onBackPressedCallBack: () -> Unit = {},
     isEnabled: Boolean = true,
-    onToggleBackPressedCallback: (Boolean) -> Unit = {}
+    onToggleBackPressedCallback: (Boolean) -> Unit = {},
+    isRegistered: Boolean = true,
+    onToggleBackInvokedCallback: (Boolean) -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -86,10 +119,11 @@ fun MainView(
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(onClick = { onBackPressedCallBack() }) {
-                Text("OnBackPressed")
+                Text("Press to go back")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -99,19 +133,40 @@ fun MainView(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "isEnabled: $isEnabled")
+                Text(text = "BackPressedCallback: isEnabled: $isEnabled")
                 Switch(
                     checked = isEnabled,
                     onCheckedChange = onToggleBackPressedCallback
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "BackInvokedCallback: isRegistered: $isRegistered")
+                Switch(
+                    checked = isRegistered,
+                    onCheckedChange = onToggleBackInvokedCallback
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                text = when {
+                    isEnabled -> "onBackPressedCallback is going to handle back navigation"
+                    isRegistered -> "onBackInvokedCallback is going to handle back navigation but not button press"
+                    else -> "System is going to handle back press and back gesture"
+                },
+                textAlign = TextAlign.Center,
+                fontSize = 12.sp
+            )
         }
     }
-}
-
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
 }
 
 @Preview(showBackground = true, showSystemUi = true)
