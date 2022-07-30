@@ -32,11 +32,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val onBackInvokedCallback = OnBackInvokedCallback {
-        Log.d(TAG, "onBackInvokedCallback: onBackInvoked")
-    }
+    private val onBackInvokedCallback = if (Build.VERSION.SDK_INT >= 33) {
+        OnBackInvokedCallback {
+            Log.d(TAG, "onBackInvokedCallback: onBackInvoked")
+        }
+    } else null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+        override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setMainPageContentViews()
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
@@ -58,10 +60,10 @@ class MainActivity : ComponentActivity() {
                         if (isRegistered) {
                             onBackInvokedDispatcher.registerOnBackInvokedCallback(
                                 OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-                                onBackInvokedCallback
+                                onBackInvokedCallback!!
                             )
                         } else {
-                            onBackInvokedDispatcher.unregisterOnBackInvokedCallback(onBackInvokedCallback)
+                            onBackInvokedDispatcher.unregisterOnBackInvokedCallback(onBackInvokedCallback!!)
                         }
                     }
                 }
@@ -140,18 +142,20 @@ fun MainView(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "BackInvokedCallback: isRegistered: $isRegistered")
-                Switch(
-                    checked = isRegistered,
-                    onCheckedChange = onToggleBackInvokedCallback
-                )
+            if (Build.VERSION.SDK_INT >= 33) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "BackInvokedCallback: isRegistered: $isRegistered")
+                    Switch(
+                        checked = isRegistered,
+                        onCheckedChange = onToggleBackInvokedCallback
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
