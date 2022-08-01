@@ -25,7 +25,6 @@ private const val TAG = "MainActivity"
 class MainActivity : ComponentActivity() {
 
     private val onBackPressedCallback = object : OnBackPressedCallback(true) {
-
         override fun handleOnBackPressed() {
             // Your business logic to handle the back pressed event
             Log.d(TAG, "onBackPressedCallback: handleOnBackPressed")
@@ -36,13 +35,16 @@ class MainActivity : ComponentActivity() {
         OnBackInvokedCallback {
             Log.d(TAG, "onBackInvokedCallback: onBackInvoked")
         }
-    } else null
+    } else {
+        null
+    }
 
-        override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setMainPageContentViews()
-        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+//        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
     }
+    // onBackPressedDispatcher comes into
 
     private fun setMainPageContentViews() {
         setContent {
@@ -63,7 +65,9 @@ class MainActivity : ComponentActivity() {
                                 onBackInvokedCallback!!
                             )
                         } else {
-                            onBackInvokedDispatcher.unregisterOnBackInvokedCallback(onBackInvokedCallback!!)
+                            onBackInvokedDispatcher.unregisterOnBackInvokedCallback(
+                                onBackInvokedCallback!!
+                            )
                         }
                     }
                 }
